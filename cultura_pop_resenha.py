@@ -62,7 +62,7 @@ def marcar_tema_usado(tema):
 
 
 def escolher_tema():
-    disponiveis = [t for t in TEMAS if not tema_ja_usado(t)]
+    disponiveis = [t for t in EXEMPLO_DE_TEMAS if not tema_ja_usado(t)]
     if not disponiveis:
         disponiveis = TEMAS
     return random.choice(disponiveis)
