@@ -26,25 +26,119 @@ for nome, valor in [
 groq_client = Groq(api_key=GROQ_API_KEY)
 MODELO_IA = "llama-3.3-70b-versatile"
 
-# --- CATEGORIAS DE RESENHA/DOCUMENTARIO (rodizio amplo, tema infinito) ---
-EXEMPLO_DE_TEMAS = [
-    "escolha um anime classico que passou na TV aberta brasileira nos anos 60 ah 2026... e faca uma resenha/documentario sobre ele",
-    "escolha um anime que quase nunca passou no Brasil ou passou pouco, mas se tornou cult, e conte a historia dele",
-    "escolha um anime ou franquia que esta passando atualmente ou vai estrear em breve e faca uma analise aprofundada",
-    "faca um documentario sobre a origem e evolucao do mangá no Japao, desde suas raizes ate o mercado atual",
-    "faca um documentario sobre a origem e evolucao do anime no Japao, desde os primeiros trabalhos ate os dias atuais",
-    "escolha um cartoon classico que marcou geracoes no Brasil (Cartoon Network, Nickelodeon ou similar) e faca uma resenha nostalgica",
-    "escolha uma serie de TV americana ou britanica classica que fez sucesso no Brasil e conte sua trajetoria",
-    "escolha um quadrinho ou heroi de banca classico (nacional ou internacional) e conte sua historia editorial",
-    "faca um documentario sobre a origem do rock and roll e sua evolucao ate o rock classico",
-    "faca um documentario sobre a origem e evolucao do heavy metal e seus subgeneros ate hoje",
-    "faca um documentario sobre a origem do k-pop e sua explosao global nas ultimas decadas",
-    "faca um documentario sobre a origem do j-pop e sua influencia na cultura pop japonesa",
-    "escolha uma banda ou artista de rock/pop lendario e conte a historia da carreira dele(a)",
-    "escolha um filme classico de ficcao cientifica ou fantasia e faca uma resenha aprofundada sobre seu legado",
-    "escolha um game classico dos anos 60/70/80/90/2000/2010/2020/2025/2026... e conte a historia do seu desenvolvimento e impacto cultural",
-    "escolha uma franquia de games atual e faca uma analise do que a tornou um fenomeno",
+# --- LISTA BASE DE CULTURA POP (Eterna e Reutilizável) ---
+TEMAS = [
+    # --- ANIMES & MANGÁS ---
+    "o anime e mangá 'Akira' (1988)",
+    "o anime 'Yu Yu Hakusho' e sua passagem pelo Brasil",
+    "a saga de 'Dragon Ball Z' e o legado de Akira Toriyama",
+    "o anime 'Neon Genesis Evangelion'",
+    "o mangá e anime 'Berserk' de Kentaro Miura",
+    "o anime clássico 'Speed Racer'",
+    "o anime 'Cowboy Bebop'",
+    "o mangá e anime 'Monster' de Naoki Urasawa",
+    "a franquia 'Sailor Moon'",
+    "o anime 'Death Note'",
+    "o anime 'Os Cavaleiros do Zodíaco'",
+    "o filme 'A Viagem de Chihiro' e o Studio Ghibli",
+    "o anime e filme 'Ghost in the Shell' (1995)",
+    "o anime 'Fullmetal Alchemist: Brotherhood'",
+    "o mangá e anime 'One Piece'",
+    "o anime 'Hunter x Hunter'",
+    "o anime 'Serial Experiments Lain'",
+    "o mangá 'Vagabond' de Takehiko Inoue",
+    "o anime 'InuYasha'",
+    "o mangá e anime de basquete 'Slam Dunk'",
+
+    # --- GAMES & CONSOLES ---
+    "o jogo RPG 'Chrono Trigger'",
+    "o jogo 'Castlevania: Symphony of the Night'",
+    "a guerra de consoles dos anos 90 (Super Nintendo vs Mega Drive)",
+    "o jogo 'Resident Evil 1' (1996) e o Survival Horror",
+    "o jogo 'Final Fantasy VII' (PS1)",
+    "o jogo 'The Legend of Zelda: Ocarina of Time'",
+    "o console 'PlayStation 1' e a revolução da Sony",
+    "o jogo de terror 'Silent Hill 2'",
+    "o jogo 'GTA San Andreas'",
+    "a franquia 'Pokémon' na era do Game Boy (Red/Blue)",
+    "o jogo indie 'Hollow Knight'",
+    "a criação e o impacto do mascote 'Sonic the Hedgehog'",
+    "o jogo 'Super Mario 64'",
+    "o jogo de corrida 'Top Gear' (SNES)",
+    "o fenômeno 'Minecraft'",
+    "o jogo 'Shadow of the Colossus'",
+    "a franquia de luta 'Street Fighter II'",
+    "a franquia 'Metal Gear Solid' de Hideo Kojima",
+    "o jogo 'Half-Life 2'",
+    "o console 'Dreamcast' e o fim da era SEGA em hardware",
+
+    # --- CINEMA & SÉRIES ---
+    "o filme 'Jurassic Park' (1993)",
+    "a trilogia de filmes 'O Senhor dos Anéis'",
+    "o filme 'De Volta para o Futuro'",
+    "o filme 'Blade Runner' (1982)",
+    "o filme 'Pulp Fiction' de Quentin Tarantino",
+    "o filme '2001: Uma Odisséia no Espaço'",
+    "o filme de terror 'O Exorcista' (1973)",
+    "a trilogia clássica de 'Star Wars' (Episódios IV, V e VI)",
+    "o filme 'Matrix' (1999)",
+    "a série de TV 'Breaking Bad'",
+    "a sitcom 'Seinfeld'",
+    "o programa e série 'Chaves'",
+    "o filme 'O Iluminado' de Stanley Kubrick",
+    "a série 'Twin Peaks' de David Lynch",
+    "o filme 'Alien: O Oitavo Passageiro' (1979)",
+    "a trilogia de filmes 'O Poderoso Chefão'",
+    "a franquia de terror 'A Hora do Pesadelo' (Freddy Krueger)",
+    "o filme 'Clube da Luta'",
+    "a série 'The Sopranos'",
+    "o filme brasileiro 'Cidade de Deus'",
+
+    # --- MÚSICA & BANDAS ---
+    "o álbum 'Dark Side of the Moon' do Pink Floyd",
+    "a trajetória da banda de metal 'Iron Maiden'",
+    "o movimento Grunge e a banda 'Nirvana'",
+    "o álbum 'Thriller' e a carreira de Michael Jackson",
+    "o festival 'Woodstock 1969'",
+    "a banda 'Black Sabbath' e o nascimento do Heavy Metal",
+    "o álbum 'Abbey Road' e o fim dos 'Beatles'",
+    "o fenômeno global do K-Pop e a banda 'BTS'",
+    "o show e festival 'Live Aid 1985'",
+    "a carreira e os alter egos de 'David Bowie'",
+    "o álbum 'Master of Puppets' do Metallica",
+    "a trajetória da banda 'AC/DC'",
+    "o festival 'Rock in Rio 1985' no Brasil",
+    "o álbum 'OK Computer' do Radiohead",
+    "a dupla de música eletrônica 'Daft Punk'",
+    "a estética musical do Synthwave e anos 80",
+    "a banda 'Led Zeppelin'",
+    "a cena musical japonesa 'Visual Kei' (X Japan)",
+    "a ascensão do 'Guns N' Roses' nos anos 90",
+    "o movimento Punk de 1977 (Sex Pistols e Ramones)",
+
+    # --- CARTOONS & QUADRINHOS ---
+    "o desenho 'Coragem, o Cão Covarde'",
+    "a animação 'Avatar: A Lenda de Aang'",
+    "o desenho 'O Laboratório de Dexter'",
+    "a animação 'Batman: A Série Animada' (1992)",
+    "o desenho 'As Meninas Superpoderosas'",
+    "o desenho clássico 'Caverna do Dragão'",
+    "a animação 'Apenas um Show' (Regular Show)",
+    "o desenho 'Hora de Aventura'",
+    "o estúdio de animação 'Hanna-Barbera'",
+    "a HQ e graphic novel 'Watchmen' de Alan Moore",
+    "a HQ 'O Cavaleiro das Trevas' de Frank Miller",
+    "as histórias em quadrinhos da 'Turma da Mônica'",
+    "a HQ 'Sandman' de Neil Gaiman",
+    "a saga de quadrinhos 'A Morte do Superman'",
+    "a graphic novel 'Maus' sobre o Holocausto",
+    "a saga 'Guerra Civil' da Marvel Comics",
+    "a história em quadrinhos 'A Piada Mortal' (Coringa)",
+    "o selo de quadrinhos adultos 'Vertigo' da DC",
+    "a HQ 'V de Vingança'",
+    "o desenho clássico do 'Pica-Pau' no Brasil"
 ]
+
 ARQUIVO_HISTORICO = "historico_pop_resenha.txt"
 
 
@@ -53,7 +147,8 @@ def tema_ja_usado(tema):
         return False
     with open(ARQUIVO_HISTORICO, "r", encoding="utf-8") as f:
         linhas = f.read().splitlines()
-    return tema in linhas[-8:]
+    # Evita repetir o mesmo tema exato nos últimos 15 ciclos
+    return tema in linhas[-15:]
 
 
 def marcar_tema_usado(tema):
@@ -62,7 +157,7 @@ def marcar_tema_usado(tema):
 
 
 def escolher_tema():
-    disponiveis = [t for t in EXEMPLO_DE_TEMAS if not tema_ja_usado(t)]
+    disponiveis = [t for t in TEMAS if not tema_ja_usado(t)]
     if not disponiveis:
         disponiveis = TEMAS
     return random.choice(disponiveis)
@@ -114,63 +209,62 @@ def pedir_ia_groq(prompt, temperatura=0.7, max_tokens=None):
 
 
 def gerar_esqueleto(instrucao_tema):
-    """ETAPA 1: pede um roteiro/esqueleto detalhado antes de escrever o texto final.
-    Isso forca a IA a planejar profundidade em vez de escrever de qualquer jeito."""
+    """ETAPA 1: Sorteia um ângulo e pede um esqueleto detalhado.
+    A injeção do ângulo garante posts inéditos no futuro."""
+    
+    angulos = [
+        "Foco em Bastidores e Desenvolvimento (como foi criado, perrengues de produção, equipe, segredos de criação).",
+        "Análise Crítica e Temática (mensagens ocultas, filosofia, simbolismos, análise do roteiro ou estética).",
+        "Impacto Cultural e Legado (como mudou a indústria, revolução no gênero, obras que foram influenciadas por ela).",
+        "Curiosidades Pouco Conhecidas e Easter Eggs (fatos estranhos, detalhes imperceptíveis, mitos e verdades).",
+        "Visão Nostálgica e Recepção no Brasil (exibição na TV aberta/locadoras, dublagem nacional, febre entre os fãs na época)."
+    ]
+    angulo_sorteado = random.choice(angulos)
+    
     prompt = f"""
-Voce e um roteirista de documentarios sobre cultura pop (animes, mangas, cartoons, series,
-quadrinhos, musica e games).
+Você é um roteirista de documentários sobre cultura pop (animes, mangás, cartoons, séries, quadrinhos, música e games).
 
-Tarefa: {instrucao_tema}
+Tema central de hoje: {instrucao_tema}
 
-Primeiro, ANTES de escrever o artigo, monte um ESQUELETO detalhado do que sera abordado:
-- Escolha e diga EXATAMENTE qual e o titulo/artista/franquia/tema especifico que voce vai
-  abordar (seja concreto, nao generico).
-- Liste de 5 a 7 topicos/secoes que o artigo vai cobrir (ex: Hook, origem, contexto historico,
-  principais nomes envolvidos, curiosidades de bastidores, impacto cultural, legado atual,
-  recepcao do publico brasileiro se for o caso, chamada para ação).
-- Para cada topico, escreva 1-2 frases resumindo o que sera dito ali, SEM repetir a mesma
-  informacao em topicos diferentes.
+⚠️ ÂNGULO OBRIGATÓRIO PARA A MATÉRIA DE HOJE:
+"{angulo_sorteado}"
 
-Responda apenas com esse esqueleto, em texto simples (nao HTML ainda).
+Primeiro, ANTES de escrever o artigo, monte um ESQUELETO detalhado guiado por esse ângulo:
+- Confirme o tema principal e o ângulo escolhido.
+- Liste de 5 a 7 tópicos/seções que o artigo vai cobrir.
+- Para cada tópico, escreva 1-2 frases resumindo o que será abordado, SEM repetir informação.
+
+Responda apenas com esse esqueleto, em texto simples (sem HTML).
 """
     return pedir_ia_groq(prompt, temperatura=0.6)
 
 
 def gerar_artigo_completo(esqueleto):
-    """ETAPA 2: pede o artigo completo usando o esqueleto como guia obrigatorio."""
+    """ETAPA 2: Pede o artigo completo usando o esqueleto como guia obrigatório."""
     prompt = f"""
-Voce e um redator de cultura pop premiado, cronista! Escreve artigos estilo documentario/resenha
-para um blog de fas muito engajado. Escreva com MUITO capricho, sem pressa - este e um
+Você é um redator de cultura pop premiado, cronista! Escreve artigos estilo documentário/resenha
+para um blog de fãs muito engajado. Escreva com MUITO capricho, sem pressa - este é um
 artigo de destaque do blog. 
-Reforçando: Voce e um redator(pesquisa varias fontes) especializado em cultura pop (animes, mangas, quadrinhos, cartoons,
-filmes, series, games e musica - rock, pop, k-pop, j-pop, metal) para um blog de fas muito
-engajado. Sabe todas as novidades, sabe traçar raciocinio memoria e transcrever de forma agradavel,engraçada, futuca bastidores, sabe uma ou outra fofoquinha, sabe contruir comunidade, Escreva com qualidade alta, sem pressa - capriche de verdade.
-Não esquece de citar fontes que serviu de inspiração para o artigo, pode colocar link das fontes para garantir credibilidade do artigo e autoridade. 
+Reforçando: Você é um redator (pesquisa várias fontes) especializado em cultura pop (animes, mangás, quadrinhos, cartoons,
+filmes, séries, games e música) para um blog de fãs engajado. Sabe todas as novidades, sabe traçar raciocínio, memória e transcrever de forma agradável, engraçada, futuca bastidores, sabe uma ou outra fofoquinha e constrói comunidade.
 
-Use este esqueleto como guia OBRIGATORIO, desenvolvendo cada topico dele em profundidade,
-sem pular nenhum e sem repetir informacao entre secoes:
+Use este esqueleto como guia OBRIGATÓRIO, desenvolvendo cada tópico dele em profundidade,
+sem pular nenhum e sem repetir informação entre seções:
 
 {esqueleto}
 
-REGRAS DE CONTEUDO:
-- Baseie-se em fatos historicos e culturais reais e amplamente conhecidos sobre o tema.
-  NAO invente datas, numeros ou citacoes especificas que voce nao tenha certeza - nesses
-  casos, descreva de forma mais geral em vez de inventar um fato falso especifico.
-- Escreva de forma agradavel e nostalgica, pegando pelo sentimento de quem acompanhou ou
-  vai gostar de conhecer o tema.
-- PROIBIDO repetir a mesma frase, ideia ou informacao mais de uma vez em palavras diferentes.
-  Cada paragrafo tem que avancar a narrativa com informacao nova.
-- Tamanho OBRIGATORIO: no MINIMO 1400 palavras. Desenvolva bem cada secao do esqueleto -
-  isso naturalmente atinge o tamanho pedido se voce seguir o esqueleto com profundidade real.
+REGRAS DE CONTEÚDO:
+- Baseie-se em fatos históricos e culturais reais sobre o tema. NÃO invente datas ou números sem certeza.
+- Escreva de forma agradável e envolvente.
+- PROIBIDO repetir a mesma frase ou ideia. Cada parágrafo deve avançar a narrativa.
+- Tamanho OBRIGATÓRIO: no MÍNIMO 1400 palavras. Desenvolva bem cada seção.
 
 REGRAS DE FORMATO (HTML puro, sem Markdown):
-1. Um titulo interno como <h1> nao e necessario (o titulo do post e separado), comece
-   direto com um paragrafo de abertura instigante.
-2. Cada topico do esqueleto vira um subtitulo <h2> proprio.
-3. Inclua PELO MENOS 2 notas do autor engracadas e leves, cada uma dentro de <blockquote>,
-   com comentarios pessoais de fa (nunca ofensivos), espalhadas em pontos diferentes do texto.
-4. Nao inclua links no corpo do texto.
-5. Termine com um paragrafo de fechamento reflexivo sobre o legado/importancia do tema.
+1. Comece direto com um parágrafo de abertura instigante (sem h1).
+2. Cada tópico do esqueleto vira um subtítulo <h2> próprio.
+3. Inclua PELO MENOS 2 notas do autor engraçadas e leves, cada uma dentro de <blockquote>, com comentários de fã.
+4. Não inclua links no corpo do texto.
+5. Termine com um parágrafo de fechamento reflexivo sobre o legado do tema.
 """
     return pedir_ia_groq(prompt, temperatura=0.75)
 
@@ -178,8 +272,8 @@ REGRAS DE FORMATO (HTML puro, sem Markdown):
 def gerar_titulo(esqueleto):
     prompt = (
         f"Baseado neste esqueleto de artigo:\n{esqueleto}\n\n"
-        f"Crie um titulo de blog envolvente, nostalgico, otimizado para SEO, em portugues "
-        f"do Brasil, sem aspas. Responda apenas o titulo, texto puro."
+        f"Crie um título de blog envolvente, nostálgico, otimizado para SEO, em português "
+        f"do Brasil, sem aspas. Responda apenas o título, texto puro."
     )
     return pedir_ia_groq(prompt, temperatura=0.7).replace('"', '').strip()
 
@@ -187,9 +281,9 @@ def gerar_titulo(esqueleto):
 def extrair_palavra_chave(esqueleto):
     prompt = (
         f"Baseado neste esqueleto de artigo:\n{esqueleto}\n\n"
-        f"De apenas UMA palavra-chave em ingles que descreva visualmente o tema principal "
+        f"Dê apenas UMA palavra-chave em inglês que descreva visualmente o tema principal "
         f"(ex: 'anime', 'rock concert', 'retro cartoon', 'vintage video game'). "
-        f"Responda so a palavra."
+        f"Responda só a palavra."
     )
     return pedir_ia_groq(prompt, temperatura=0.3).strip().lower().split()[0]
 
@@ -198,7 +292,7 @@ def gerar_cta():
     return """
 <div style="background-color: #f4f6f8; border-radius: 12px; margin: 30px 0; padding: 25px; text-align: center; font-family: sans-serif;">
     <p style="font-size: 17px; font-weight: bold; color: #333; margin: 0 0 10px 0;">Gostou dessa viagem no tempo?</p>
-    <p style="font-size: 14px; color: #555; margin: 0 0 15px 0;">Curta, deixe seu comentario contando suas lembrancas do assunto e compartilhe com quem tambem vai se emocionar!</p>
+    <p style="font-size: 14px; color: #555; margin: 0 0 15px 0;">Curta, deixe seu comentário contando suas lembranças do assunto e compartilhe com quem também vai se emocionar!</p>
     <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
         <a href="#" onclick="window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(document.title + ' - ' + window.location.href), '_blank'); return false;" style="background-color: #25d366; color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: bold;">WhatsApp</a>
         <a href="#" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), '_blank'); return false;" style="background-color: #1877f2; color: white; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: bold;">Facebook</a>
@@ -239,7 +333,7 @@ if __name__ == "__main__":
     print(f"Tema sorteado: {instrucao_tema}")
 
     esqueleto = gerar_esqueleto(instrucao_tema)
-    print("Esqueleto gerado, escrevendo artigo completo...")
+    print("Esqueleto e ângulo gerados. Escrevendo artigo completo...")
 
     corpo = gerar_artigo_completo(esqueleto)
     titulo = gerar_titulo(esqueleto)
@@ -249,11 +343,11 @@ if __name__ == "__main__":
     cta = gerar_cta()
 
     aviso = (
-        '<p style="font-size: 12px; color: #888; font-style: italic;">Artigo de carater '
-        'cultural, historico e opinativo, com fins de entretenimento e nostalgia.</p>'
+        '<p style="font-size: 12px; color: #888; font-style: italic;">Artigo de caráter '
+        'cultural, histórico e opinativo, com fins de entretenimento e nostalgia.</p>'
     )
 
     html_final = f"{img_html}{corpo}{cta}{aviso}"
     publicar_no_blogger(titulo, html_final, ["resenha", "documentario", "cultura pop"])
     marcar_tema_usado(instrucao_tema)
-    print("Concluido!")
+    print("Concluído com sucesso!")
