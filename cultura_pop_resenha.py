@@ -27,7 +27,7 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 MODELO_IA = "llama-3.3-70b-versatile"
 
 # --- CATEGORIAS DE RESENHA/DOCUMENTARIO (rodizio amplo, tema infinito) ---
-EXEMPLO DE TEMAS = [
+EXEMPLO_DE_TEMAS = [
     "escolha um anime classico que passou na TV aberta brasileira nos anos 60 ah 2026... e faca uma resenha/documentario sobre ele",
     "escolha um anime que quase nunca passou no Brasil ou passou pouco, mas se tornou cult, e conte a historia dele",
     "escolha um anime ou franquia que esta passando atualmente ou vai estrear em breve e faca uma analise aprofundada",
@@ -44,9 +44,7 @@ EXEMPLO DE TEMAS = [
     "escolha um filme classico de ficcao cientifica ou fantasia e faca uma resenha aprofundada sobre seu legado",
     "escolha um game classico dos anos 60/70/80/90/2000/2010/2020/2025/2026... e conte a historia do seu desenvolvimento e impacto cultural",
     "escolha uma franquia de games atual e faca uma analise do que a tornou um fenomeno",
-
 ]
-
 ARQUIVO_HISTORICO = "historico_pop_resenha.txt"
 
 
