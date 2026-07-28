@@ -34,6 +34,7 @@ MODELO_IA = "llama-3.3-70b-versatile"
 # automaticamente no metodo antigo (busca de imagem no Openverse).
 CLOUDFLARE_WORKER_URL = os.environ.get("CLOUDFLARE_WORKER_URL")
 CLOUDFLARE_API_KEY = "0001"
+IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY")
 QTD_MIN_IMAGENS = 5
 QTD_MAX_IMAGENS = 10
 
@@ -428,26 +429,31 @@ def gerar_imagem_cloudflare(prompt, ratio="16:9"):
 
 
 def hospedar_imagem(imagem_bytes, nome_arquivo="imagem.png"):
-    """Sobe a imagem gerada para o catbox.moe (host gratuito, sem chave) e retorna a URL publica."""
+    """Sobe a imagem gerada para o imgbb.com (host gratuito via API) e retorna a URL publica.
+    Catbox.moe bloqueia uploads vindos de IPs de datacenter (ex: GitHub Actions), por isso
+    usamos o imgbb, que aceita chamadas de API normalmente."""
+    if not IMGBB_API_KEY:
+        print("Falha ao hospedar imagem: IMGBB_API_KEY nao configurada")
+        return None
     try:
+        b64 = base64.b64encode(imagem_bytes).decode("utf-8")
         resposta = requests.post(
-            "https://catbox.moe/user/api.php",
-            data={"reqtype": "fileupload"},
-            files={"fileToUpload": (nome_arquivo, imagem_bytes, "image/png")},
+            "https://api.imgbb.com/1/upload",
+            data={"key": IMGBB_API_KEY, "image": b64, "name": nome_arquivo},
             timeout=30,
         )
         resposta.raise_for_status()
-        url = resposta.text.strip()
-        if url.startswith("http"):
-            return url
-        raise ValueError(f"Resposta inesperada do catbox: {url[:100]}")
+        dados = resposta.json()
+        if dados.get("success"):
+            return dados["data"]["url"]
+        raise ValueError(f"Resposta inesperada do imgbb: {dados}")
     except Exception as e:
         print(f"Falha ao hospedar imagem gerada: {e}")
         return None
 
 
 def gerar_imagem_ia(prompt, ratio="16:9"):
-    """Pipeline completo: gera a imagem no Cloudflare Worker e hospeda no catbox. Retorna URL ou None."""
+    """Pipeline completo: gera a imagem no Cloudflare Worker e hospeda no imgbb. Retorna URL ou None."""
     imagem_bytes = gerar_imagem_cloudflare(prompt, ratio)
     if not imagem_bytes:
         return None
@@ -515,6 +521,8 @@ def montar_galeria_ia(titulo_post, corpo_html, minimo, maximo, contexto_extra=""
     etapa falhar, para o chamador cair no fallback do Openverse."""
     if not CLOUDFLARE_WORKER_URL:
         raise RuntimeError("CLOUDFLARE_WORKER_URL nao configurada")
+    if not IMGBB_API_KEY:
+        raise RuntimeError("IMGBB_API_KEY nao configurada")
 
     secoes_brutas = extrair_titulos_h2(corpo_html)
     secoes = [_limpar_tag(s) for s in secoes_brutas]
