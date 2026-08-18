@@ -638,14 +638,14 @@ REGRAS DE CONTEÚDO:
 - Baseie-se em fatos históricos e culturais reais sobre o tema. NÃO invente datas ou números sem certeza.
 - Escreva de forma agradável e envolvente.
 - PROIBIDO repetir a mesma frase ou ideia. Cada parágrafo deve avançar a narrativa.
-- Tamanho OBRIGATÓRIO: no MÍNIMO 1400 palavras. Desenvolva bem cada seção.
+- Tamanho OBRIGATÓRIO: no MÍNIMO 3400+ palavras. Desenvolva bem e aprofunde com qualidade cada seção, sem ser chato, ganchos para prender o leitor do inicio ao fim!
 
 REGRAS DE FORMATO (HTML puro, sem Markdown):
-1. Comece direto com um parágrafo de abertura instigante (sem h1).
+1. Comece direto com um parágrafo de abertura instigante, hook matador cheio de gatilhos (sem h1).
 2. Cada tópico do esqueleto vira um subtítulo <h2> próprio.
-3. Inclua PELO MENOS 2 notas do autor engraçadas e leves, cada uma dentro de <blockquote>, com comentários de fã.
-4. Não inclua links no corpo do texto.
-5. Termine com um parágrafo de fechamento reflexivo sobre o legado do tema.
+3. Inclua PELO MENOS 5 notas do autor engraçadas e leves, cada uma dentro de <blockquote>, com comentários de fã.
+4. Texto viciante enriquecedor e engajante!
+5. Termine com um parágrafo de fechamento reflexivo e impactante sobre o legado do tema, pedindo para compartilhar o post de forma personalizada!
 """
     return pedir_ia_groq(prompt, temperatura=0.75)
 
