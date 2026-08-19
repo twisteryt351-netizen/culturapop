@@ -30,6 +30,11 @@ for nome, valor in [
 groq_client = Groq(api_key=GROQ_API_KEY)
 MODELO_IA = "openai/gpt-oss-120b"
 
+def _mascarar(valor):
+    if not valor:
+        return "❌ NÃO configurado"
+    return f"✅ configurado ({len(valor)} caracteres, começa com '{valor[:4]}...')"
+
 # --- GERACAO DE IMAGENS COM IA (Pollinations.ai) ---
 # Opcional: se nao configurado, ou se qualquer etapa falhar, o script cai
 # automaticamente no metodo antigo (busca de imagem no Openverse).
@@ -39,6 +44,9 @@ INTERVALO_POLLINATIONS = 8 if POLLINATIONS_TOKEN else 18
 IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY")
 QTD_MIN_IMAGENS = 8
 QTD_MAX_IMAGENS = 10
+
+print(f"🔑 POLLINATIONS_TOKEN: {_mascarar(POLLINATIONS_TOKEN)}")
+print(f"🔑 IMGBB_API_KEY:      {_mascarar(IMGBB_API_KEY)}")
 
 # --- LISTA BASE DE CULTURA POP (Triplicada: 300 Temas Diferentes) ---
 TEMAS = [
@@ -407,32 +415,42 @@ DIMENSOES_RATIO = {
 }
 
 
-def gerar_imagem_pollinations(prompt, ratio="16:9"):
+def gerar_imagem_pollinations(prompt, ratio="16:9", tentativas=3):
     """Gera uma imagem via Pollinations.ai (gratuito, sem chave, sem cota diaria).
-    Retorna bytes da imagem ou None se falhar."""
+    Tenta algumas vezes com espera crescente antes de desistir — falhas
+    isoladas/timeouts do Pollinations são comuns e não deveriam derrubar
+    a imagem inteira na primeira tentativa."""
     largura, altura = DIMENSOES_RATIO.get(ratio, (1280, 720))
-    try:
-        prompt_codificado = urllib.parse.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{prompt_codificado}"
-        params = {
-            "width": largura,
-            "height": altura,
-            "model": "flux",
-            "seed": random.randint(1, 999999),
-            "nologo": "true",
-        }
-        headers = {}
-        if POLLINATIONS_TOKEN:
-            headers["Authorization"] = f"Bearer {POLLINATIONS_TOKEN}"
-        resposta = requests.get(url, params=params, headers=headers, timeout=120)
-        resposta.raise_for_status()
-        content_type = resposta.headers.get("Content-Type", "")
-        if "image" not in content_type:
-            raise ValueError(f"Resposta nao parece ser uma imagem (Content-Type: {content_type})")
-        return resposta.content
-    except Exception as e:
-        print(f"⚠️ Pollinations.ai falhou para o prompt '{prompt[:40]}...': {e}")
-        return None
+    prompt_codificado = urllib.parse.quote(prompt)
+    url = f"https://image.pollinations.ai/prompt/{prompt_codificado}"
+    headers = {}
+    if POLLINATIONS_TOKEN:
+        headers["Authorization"] = f"Bearer {POLLINATIONS_TOKEN}"
+
+    for tentativa in range(1, tentativas + 1):
+        try:
+            params = {
+                "width": largura, "height": altura, "model": "flux",
+                "seed": random.randint(1, 999999), "nologo": "true",
+            }
+            resposta = requests.get(url, params=params, headers=headers, timeout=120)
+            if resposta.status_code != 200:
+                trecho = resposta.text[:200].replace("\n", " ")
+                raise ValueError(f"HTTP {resposta.status_code} — resposta: {trecho!r}")
+            content_type = resposta.headers.get("Content-Type", "")
+            if "image" not in content_type:
+                trecho = resposta.text[:200].replace("\n", " ")
+                raise ValueError(f"Resposta não é imagem (Content-Type: {content_type}) — corpo: {trecho!r}")
+            return resposta.content
+        except Exception as e:
+            if tentativa < tentativas:
+                espera = 5 * tentativa
+                print(f"⚠️ Pollinations.ai falhou (tentativa {tentativa}/{tentativas}) "
+                      f"para o prompt '{prompt[:40]}...': {e}. Tentando de novo em {espera}s...")
+                time.sleep(espera)
+            else:
+                print(f"⚠️ Pollinations.ai falhou definitivamente para o prompt '{prompt[:40]}...': {e}")
+    return None
 
 
 def hospedar_imagem(imagem_bytes, nome_arquivo="imagem.png"):
@@ -451,12 +469,35 @@ def hospedar_imagem(imagem_bytes, nome_arquivo="imagem.png"):
         )
         resposta.raise_for_status()
         dados = resposta.json()
-        if dados.get("success"):
-            return dados["data"]["url"]
-        raise ValueError(f"Resposta inesperada do imgbb: {dados}")
+        if not dados.get("success"):
+            raise ValueError(f"Resposta inesperada do imgbb: {dados}")
+        url = dados["data"]["url"]
+        if not verificar_url_imagem(url):
+            raise ValueError("URL do imgbb não respondeu 200 depois de várias tentativas.")
+        return url
     except Exception as e:
         print(f"Falha ao hospedar imagem gerada: {e}")
         return None
+
+
+def verificar_url_imagem(url, tentativas=5, espera_segundos=2):
+    """Confirma que a URL já está de fato acessível antes de usar no post —
+    sem isso, o post é publicado com um link que ainda dá 404, e só passa a
+    funcionar quando o Blogger recarrega o conteúdo (ex: ao clicar 'Atualizar')."""
+    for tentativa in range(1, tentativas + 1):
+        try:
+            resp = requests.head(url, timeout=10, allow_redirects=True)
+            if resp.status_code == 200:
+                return True
+            if resp.status_code in (403, 405):
+                resp = requests.get(url, timeout=10, stream=True)
+                if resp.status_code == 200:
+                    return True
+        except requests.RequestException:
+            pass
+        if tentativa < tentativas:
+            time.sleep(espera_segundos)
+    return False
 
 
 def gerar_imagem_ia(prompt, ratio="16:9"):
@@ -523,9 +564,12 @@ sem citar nomes proprios de obras protegidas. Responda APENAS com as {quantidade
     return linhas[:quantidade]
 
 
-def montar_galeria_ia(titulo_post, corpo_html, minimo, maximo, contexto_extra=""):
-    """Gera a galeria completa de imagens via Pollinations.ai. Lanca excecao se qualquer
-    etapa falhar, para o chamador cair no fallback do Openverse."""
+def montar_galeria_ia(titulo_post, corpo_html, minimo, maximo, palavra_fallback, contexto_extra=""):
+    """Gera a galeria de imagens via Pollinations.ai. Diferente de antes: se
+    uma imagem específica falhar (mesmo depois das tentativas), ela cai
+    individualmente pro Openverse — NÃO descarta as outras imagens da
+    galeria que já deram certo. Openverse só entra em cena por imagem,
+    como fallback de ÚLTIMO CASO, nunca pro post inteiro de uma vez."""
     if not IMGBB_API_KEY:
         raise RuntimeError("IMGBB_API_KEY nao configurada")
 
@@ -540,13 +584,22 @@ def montar_galeria_ia(titulo_post, corpo_html, minimo, maximo, contexto_extra=""
 
     prompts = gerar_prompts_imagens_ia(titulo_post, secoes, qtd, contexto_extra)
 
+    openverse_cache = None
     galeria = []
     for i, prompt in enumerate(prompts):
         url = gerar_imagem_ia(prompt, ratio="16:9")
+        origem = "Pollinations.ai"
         if not url:
-            raise RuntimeError(f"Falha ao gerar/hospedar imagem {i + 1}/{qtd} da galeria")
+            # fallback POR IMAGEM (não derruba as que já deram certo)
+            print(f"  ⚠️  Imagem {i + 1}/{qtd}: Pollinations.ai/ImgBB falharam, "
+                  f"buscando no Openverse como último caso...")
+            if openverse_cache is None:
+                openverse_cache = [buscar_imagem_openverse(palavra_fallback) for _ in range(qtd)]
+            url = openverse_cache[i % len(openverse_cache)]
+            origem = "Openverse (fallback)"
         alt = titulo_post if i == 0 else (secoes[i - 1] if i - 1 < len(secoes) else titulo_post)
         galeria.append((url, alt))
+        print(f"  ✅ Imagem {i + 1}/{qtd} pronta via {origem}.")
         if i < len(prompts) - 1:
             time.sleep(INTERVALO_POLLINATIONS)  # respeita o rate limit do Pollinations.ai
 
@@ -647,7 +700,7 @@ REGRAS DE FORMATO (HTML puro, sem Markdown):
 4. Texto viciante enriquecedor e engajante!
 5. Termine com um parágrafo de fechamento reflexivo e impactante sobre o legado do tema, pedindo para compartilhar o post de forma personalizada!
 """
-    return pedir_ia_groq(prompt, temperatura=0.75)
+    return pedir_ia_groq(prompt, temperatura=0.75, max_tokens=8000)
 
 
 def gerar_titulo(esqueleto):
@@ -705,7 +758,18 @@ def publicar_no_blogger(titulo, conteudo, tags):
         'labels': tags,
     }
     resultado = blogger.posts().insert(blogId=BLOGGER_ID, body=corpo_postagem).execute()
+    post_id = resultado.get("id")
     print(f"Postado: '{titulo}' -> {resultado.get('url')}")
+
+    # Automatiza o "abrir e atualizar" manual: o Blogger às vezes só
+    # (re)processa miniaturas/imagens externas quando o post é resalvo.
+    if post_id:
+        try:
+            time.sleep(5)
+            blogger.posts().update(blogId=BLOGGER_ID, postId=post_id, body=corpo_postagem).execute()
+            print("Re-save automático aplicado (equivalente a abrir e atualizar).")
+        except Exception as e_update:
+            print(f"Re-save automático falhou (post já está publicado normalmente): {e_update}")
 
 
 if __name__ == "__main__":
@@ -717,7 +781,26 @@ if __name__ == "__main__":
     print("Esqueleto e ângulo gerados. Escrevendo artigo completo...")
 
     corpo = gerar_artigo_completo(esqueleto)
+    palavras = contar_palavras_html(corpo)
+    tentativas_extensao = 0
+    while palavras < 3400 and tentativas_extensao < 2:
+        tentativas_extensao += 1
+        print(f"Artigo saiu com {palavras} palavras (meta 3400+) — pedindo continuação (tentativa {tentativas_extensao})...")
+        prompt_continuar = f"""
+O artigo abaixo terminou curto demais (menos de 3400 palavras). Continue-o
+EXATAMENTE de onde parou, mesmo tom e formato HTML (pode abrir novos <h2> se
+fizer sentido). NÃO repita nada do que já foi escrito — só continue e
+aprofunde até fechar bem, incluindo o restante das notas do autor em
+<blockquote> se ainda não tiver as 5.
+
+ARTIGO ATÉ AGORA:
+{corpo}
+"""
+        continuacao = pedir_ia_groq(prompt_continuar, temperatura=0.75, max_tokens=8000)
+        corpo = corpo + "\n" + continuacao
+        palavras = contar_palavras_html(corpo)
     titulo = gerar_titulo(esqueleto)
+    palavra_chave = extrair_palavra_chave(esqueleto)
 
     try:
         galeria, secoes_brutas = montar_galeria_ia(
@@ -725,14 +808,17 @@ if __name__ == "__main__":
             corpo,
             minimo=QTD_MIN_IMAGENS,
             maximo=QTD_MAX_IMAGENS,
+            palavra_fallback=palavra_chave,
             contexto_extra=f"Esqueleto/tema do artigo: {esqueleto[:600]}",
         )
         img_html = gerar_tabela_imagem_blogger(galeria[0][0], titulo)
         corpo = inserir_imagens_no_corpo(corpo, secoes_brutas, galeria)
-        print(f"Galeria com {len(galeria)} imagem(ns) gerada via Pollinations.ai.")
+        print(f"Galeria com {len(galeria)} imagem(ns) montada (Pollinations.ai + Openverse só onde precisou).")
     except Exception as e:
-        print(f"Geracao de imagens via IA falhou, usando metodo padrao (Openverse): {e}")
-        palavra_chave = extrair_palavra_chave(esqueleto)
+        # só chega aqui se IMGBB_API_KEY nem estiver configurada — nesse caso
+        # não tem como hospedar NENHUMA imagem gerada, então cai pro método
+        # antigo de 1 imagem única via Openverse pro post inteiro
+        print(f"Geracao de galeria via IA indisponível, usando método padrão (1 imagem via Openverse): {e}")
         img_url = buscar_imagem_openverse(palavra_chave)
         img_html = gerar_tabela_imagem_blogger(img_url, titulo)
 
