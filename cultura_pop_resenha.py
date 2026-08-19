@@ -708,7 +708,19 @@ REGRAS DE CONTEÚDO:
 REGRAS DE FORMATO (HTML puro, sem Markdown):
 1. Comece direto com um parágrafo de abertura instigante, hook matador cheio de gatilhos (sem h1).
 2. Cada tópico do esqueleto vira um subtítulo <h2> próprio.
-3. Inclua PELO MENOS 5 notas do autor engraçadas e leves, cada uma dentro de <blockquote>, com comentários de fã.
+3. Inclua PELO MENOS 5 comentários pessoais seus (o autor comentando a própria
+   matéria com o leitor), cada um dentro de <blockquote>.
+   - PROIBIDO começar com rótulo tipo "Nota do Autor:", "Nota do editor:" ou
+     qualquer variação disso. Comece de forma natural e coloquial, como se
+     você estivesse pensando alto no meio da escrita. Exemplos de abertura
+     (varie, não repita a mesma duas vezes): "Sabia que...", "Então,",
+     "Lembrei agora que...", "Falando nisso,", "Confesso que...", "Ah, e...",
+     "Verdade seja dita,", "Juro que...", "Aliás,".
+   - DISTRIBUA os 5 comentários AO LONGO DE TODO o artigo — nunca todos
+     juntos e nunca amontoados só perto do final. Coloque um logo depois da
+     abertura, e os demais espalhados um a cada seção ou duas <h2>, cada um
+     comentando o trecho específico que acabou de ser narrado ali, não um
+     resumo genérico do artigo inteiro.
 4. Texto viciante enriquecedor e engajante!
 5. Termine com um parágrafo de fechamento reflexivo e impactante sobre o legado do tema, pedindo para compartilhar o post de forma personalizada!
 """
@@ -809,8 +821,11 @@ Você está escrevendo um artigo longo e ele terminou curto demais (menos de
 EXATAMENTE de onde esse trecho termina, mesmo tom e formato HTML (pode abrir
 novos <h2> se fizer sentido). NÃO repita nada, não recomece a história, não
 resuma o que já foi dito — apenas continue a partir daqui e aprofunde até
-fechar bem, incluindo o restante das notas do autor em <blockquote> se ainda
-não tiver as 5 no total.
+fechar bem, incluindo o restante dos comentários pessoais em <blockquote> se
+ainda não tiver os 5 no total (sem rótulo tipo "Nota do Autor:", começando
+de forma natural tipo "Sabia que...", "Então,", "Falando nisso," — variando
+a abertura de cada um, espalhados ao longo do que for escrito, não todos
+juntos).
 
 TRECHO FINAL DO QUE JÁ FOI ESCRITO:
 [...continua de: ]
