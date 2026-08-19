@@ -630,7 +630,7 @@ def gerar_tabela_imagem_blogger(url_img, alt_title):
     )
 
 
-def pedir_ia_groq(prompt, temperatura=0.7, max_tokens=None):
+def pedir_ia_groq(prompt, temperatura=0.7, max_tokens=None, tentativas=3):
     kwargs = {
         "messages": [{"role": "user", "content": prompt}],
         "model": MODELO_IA,
@@ -638,8 +638,20 @@ def pedir_ia_groq(prompt, temperatura=0.7, max_tokens=None):
     }
     if max_tokens:
         kwargs["max_tokens"] = max_tokens
-    response = groq_client.chat.completions.create(**kwargs)
-    return response.choices[0].message.content.strip()
+    for tentativa in range(1, tentativas + 1):
+        try:
+            response = groq_client.chat.completions.create(**kwargs)
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            msg = str(e)
+            eh_rate_limit = "rate_limit_exceeded" in msg or "429" in msg or "413" in msg or "tokens per minute" in msg
+            if eh_rate_limit and tentativa < tentativas:
+                espera = 65  # a janela de TPM da Groq reseta por minuto
+                print(f"⚠️ Limite de tokens/min da Groq atingido (tentativa {tentativa}/{tentativas}). "
+                      f"Aguardando {espera}s pra janela resetar... ({msg[:150]})")
+                time.sleep(espera)
+            else:
+                raise
 
 
 def gerar_esqueleto(instrucao_tema):
@@ -700,7 +712,7 @@ REGRAS DE FORMATO (HTML puro, sem Markdown):
 4. Texto viciante enriquecedor e engajante!
 5. Termine com um parágrafo de fechamento reflexivo e impactante sobre o legado do tema, pedindo para compartilhar o post de forma personalizada!
 """
-    return pedir_ia_groq(prompt, temperatura=0.75, max_tokens=8000)
+    return pedir_ia_groq(prompt, temperatura=0.75, max_tokens=6500)
 
 
 def gerar_titulo(esqueleto):
@@ -786,17 +798,25 @@ if __name__ == "__main__":
     while palavras < 3400 and tentativas_extensao < 2:
         tentativas_extensao += 1
         print(f"Artigo saiu com {palavras} palavras (meta 3400+) — pedindo continuação (tentativa {tentativas_extensao})...")
+        # manda só o FINAL do que já foi escrito como contexto (não o artigo
+        # inteiro) — evita estourar o limite de tokens de entrada da Groq,
+        # que soma prompt + max_tokens dentro da mesma janela por minuto
+        contexto_final = corpo[-2500:]
         prompt_continuar = f"""
-O artigo abaixo terminou curto demais (menos de 3400 palavras). Continue-o
-EXATAMENTE de onde parou, mesmo tom e formato HTML (pode abrir novos <h2> se
-fizer sentido). NÃO repita nada do que já foi escrito — só continue e
-aprofunde até fechar bem, incluindo o restante das notas do autor em
-<blockquote> se ainda não tiver as 5.
+Você está escrevendo um artigo longo e ele terminou curto demais (menos de
+3400 palavras no total). Abaixo está o TRECHO FINAL do que já foi escrito
+(não é o artigo inteiro, só o final, pra você saber onde parou). Continue
+EXATAMENTE de onde esse trecho termina, mesmo tom e formato HTML (pode abrir
+novos <h2> se fizer sentido). NÃO repita nada, não recomece a história, não
+resuma o que já foi dito — apenas continue a partir daqui e aprofunde até
+fechar bem, incluindo o restante das notas do autor em <blockquote> se ainda
+não tiver as 5 no total.
 
-ARTIGO ATÉ AGORA:
-{corpo}
+TRECHO FINAL DO QUE JÁ FOI ESCRITO:
+[...continua de: ]
+{contexto_final}
 """
-        continuacao = pedir_ia_groq(prompt_continuar, temperatura=0.75, max_tokens=8000)
+        continuacao = pedir_ia_groq(prompt_continuar, temperatura=0.75, max_tokens=6000)
         corpo = corpo + "\n" + continuacao
         palavras = contar_palavras_html(corpo)
     titulo = gerar_titulo(esqueleto)
